@@ -14,7 +14,7 @@ import (
 )
 
 type Todo struct {
-	ID int64 `json:"ID"`
+	Tid int64 `json:"ID"`
 	Text string `json:"Text"`
 	CreateTime time.Time `json:"Time"`
 }
@@ -31,8 +31,7 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 	checkErr(err)
 	for rows.Next() {
 		t := new(Todo)
-		fmt.Print(rows.Scan())
-		err := rows.Scan(&t.ID, &t.Text, &t.CreateTime)
+		err := rows.Scan(&t.Tid, &t.Text, &t.CreateTime)
 		checkErr(err)
 		todos = append(todos, t)
 	}
@@ -45,15 +44,16 @@ func addTodo(w http.ResponseWriter, r *http.Request) {
 	checkErr(err)
 	var todos []*Todo
 	params := mux.Vars(r)
+
 	counter += 1
-	stmt, err := db.Prepare("INSERT INTO Todos(ID, Text, CreateTime) VALUES(?,?,?)")
+	stmt, err := db.Prepare("INSERT INTO Todos(Text, CreateTime) VALUES(?,datetime('now'))")
 	checkErr(err)
-	_ , err = stmt.Exec(counter, params["text"], time.Now())
+	_ , err = stmt.Exec(params["text"])
 	checkErr(err)
 
 
 	t := new(Todo)
-	t.ID = counter
+	t.Tid = counter
 	t.Text = params["text"]
 	t.CreateTime = time.Now()
 	todos = append(todos, t)
@@ -68,7 +68,7 @@ func deleteTodo(w http.ResponseWriter, r *http.Request) {
 	checkErr(err)
 	params := mux.Vars(r)
 
-	stmt, err := db.Prepare("DELETE FROM Todos WHERE ID=?")
+	stmt, err := db.Prepare("DELETE FROM Todos WHERE Tid=?")
 	checkErr(err)
 	_ , err = stmt.Exec(params["id"])
 	checkErr(err)
@@ -76,24 +76,23 @@ func deleteTodo(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateTodo(w http.ResponseWriter, r *http.Request) {
-	// get id from user
-	// delete that todo from list
-	// get the updaetd text
-	// make a new todo with new text
+	w.Header().Set("Content-Type", "application/json")
 	db, err := sql.Open("sqlite3", "./tododata.db")
 	checkErr(err)
 	params := mux.Vars(r)
+	temp := params["text"]
+	id := temp[0:1]
+	text := temp[1:]
 
-	stmt, err := db.Prepare("update Todos set Text=? where ID=?")
+	stmt, err := db.Prepare("UPDATE Todos SET Text=? WHERE Tid=?")
     checkErr(err)
-	_ , err = stmt.Exec(params["text"], params["id"])
+	_ , err = stmt.Exec(text, id)
     checkErr(err)
 	db.Close()
-
 }
 
 func createTable(db *sql.DB) {
-	statement, err := db.Prepare("CREATE TABLE IF NOT EXISTS Todos (ID INT AUTO_INCREMENT(1,1), Text varchar(255), CreateTime DATETIME, PRIMARY KEY (ID))")
+	statement, err := db.Prepare("CREATE TABLE IF NOT EXISTS Todos (Tid INTEGER PRIMARY KEY AUTOINCREMENT, Text TEXT, CreateTime DATETIME)")
 	checkErr(err)
 	statement.Exec()
 	statement.Close()
@@ -110,7 +109,7 @@ func main() {
 
 	if os.IsNotExist(err) {
 		log.Println("Creating Database File...")
-		file, err := os.Create("tododata.db") // Create SQLite file
+		file, err := os.Create("tododata.db")
 		checkErr(err)
 		file.Close()
 	}
@@ -125,7 +124,7 @@ func main() {
 	router.HandleFunc("/todo", homePage).Methods("GET")
 	router.HandleFunc("/todo/{text}", addTodo).Methods("POST")
 	router.HandleFunc("/todo/{id}", deleteTodo).Methods("DELETE")
-	router.HandleFunc("todo/{id}, {text}", updateTodo).Methods("PUT")
+	router.HandleFunc("/todo/{text}", updateTodo).Methods("PUT")
 	
 	fmt.Println("Starting New Server")
 	log.Fatal(http.ListenAndServe(":3000", router))
