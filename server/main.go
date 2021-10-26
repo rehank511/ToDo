@@ -23,6 +23,7 @@ var counter int64
 
 func homePage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	db, err := sql.Open("sqlite3", "./tododata.db")
 	checkErr(err)
 	defer db.Close()
@@ -40,6 +41,9 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 
 func addTodo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	db, err := sql.Open("sqlite3", "./tododata.db")
 	checkErr(err)
 	var todos []*Todo
@@ -64,6 +68,9 @@ func addTodo(w http.ResponseWriter, r *http.Request) {
 
 func deleteTodo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "DELETE")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	db, err := sql.Open("sqlite3", "./tododata.db")
 	checkErr(err)
 	params := mux.Vars(r)
@@ -77,6 +84,9 @@ func deleteTodo(w http.ResponseWriter, r *http.Request) {
 
 func updateTodo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "PUT")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	db, err := sql.Open("sqlite3", "./tododata.db")
 	checkErr(err)
 	params := mux.Vars(r)
@@ -127,5 +137,5 @@ func main() {
 	router.HandleFunc("/todo/{text}", updateTodo).Methods("PUT")
 	
 	fmt.Println("Starting New Server")
-	log.Fatal(http.ListenAndServe(":3000", router))
+	log.Fatal(http.ListenAndServe(":8000", router))
 }
